@@ -24,8 +24,8 @@ const roleHarvester = {
 
         // Perform harvesting or collection tasks
         if (creep.store.getFreeCapacity() > 0) {
-            if (!this.collectDroppedEnergy(creep)) {
-                this.harvestEnergy(creep, source);
+            if (!this.harvestEnergy(creep, source)) {
+                this.collectDroppedEnergy(creep);
             }
         } else {
             // Perform other tasks if storage is full
@@ -38,6 +38,7 @@ const roleHarvester = {
     },
 
     collectDroppedEnergy: function (creep) {
+        creep.say('🔄');
         const droppedEnergy = creep.room.find(FIND_DROPPED_RESOURCES, {
             filter: (res) => res.resourceType === RESOURCE_ENERGY
         });
@@ -52,21 +53,25 @@ const roleHarvester = {
     },
 
     harvestEnergy: function (creep, source) {
+        creep.say('⚡');
         const sourceMemory = Memory.rooms[creep.room.name].sources[source.id];
         const assignedCreeps = sourceManager.getAssignedCreeps(source.id);
         const minersAssigned = assignedCreeps.filter((name) => name.startsWith('energyMiner')).length;
 
         if (minersAssigned >= sourceMemory.harvestablePositions) {
             console.log(`Creep ${creep.name} avoiding mining position occupied by miners.`);
-            return;
+            return false;
         }
 
         if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
             creep.moveTo(source, { visualizePathStyle: { stroke: '#ffaa00' } });
         }
+
+        return true;
     },
 
     deliverEnergy: function (creep) {
+        creep.say('📦');
         const targets = creep.room.find(FIND_STRUCTURES, {
             filter: (structure) =>
                 (structure.structureType === STRUCTURE_EXTENSION ||

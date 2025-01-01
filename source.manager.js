@@ -68,13 +68,12 @@ module.exports = {
                     console.log(`Miner ${creep.name} assigned to source at (${source.pos.x}, ${source.pos.y}).`);
                     return;
                 } else {
-                    // Reassign a harvester to make space for the miner
                     const harvesterToReassign = sourceData.assignedCreeps.find((name) => name.startsWith('harvester'));
                     if (harvesterToReassign) {
-                        this.reassignCreep(Game.creeps[harvesterToReassign]);
-                        this.assignCreepToSource(creep, sourceData.id);
-                        console.log(`Reassigned harvester ${harvesterToReassign} to make room for miner ${creep.name}.`);
+                        this.assignCreepToSource(creep, sourceData.id); // Assign miner first
                         console.log(`Miner ${creep.name} assigned to source at (${source.pos.x}, ${source.pos.y}).`);
+                        this.reassignCreep(Game.creeps[harvesterToReassign]); // Reassign harvester after
+                        console.log(`Reassigned harvester ${harvesterToReassign} to another source.`);
                         return;
                     }
                 }

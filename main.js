@@ -54,55 +54,81 @@ function manageSpawning(spawn) {
 }
 
 function updateSpawnQueue() {
-    const roleCounts = {
+    const roleCounts = countRoles();
+    const room = Game.spawns['Spawn1'].room;
+    const hasConstructionSites = room.find(FIND_CONSTRUCTION_SITES).length > 0;
+
+    // Handle harvester retirement
+    if (shouldRetireHarvester(roleCounts)) {
+        retireHarvesterToBuilder();
+    }
+
+    // Add missing roles to the spawn queue
+    addRoleToQueue('harvester', () => Memory.Early && roleCounts.harvester <= 2);
+    addRoleToQueue('energyMiner', () => roleCounts.energyMiner <= 4);
+    addRoleToQueue('carrier', () => roleCounts.carrier <= 2);
+    addRoleToQueue('upgrader', () => roleCounts.upgrader <= 2);
+    addRoleToQueue('builder', () => room.controller.level >= 2 && hasConstructionSites && roleCounts.builder < 2);
+}
+
+// Count the number of creeps for each role
+function countRoles() {
+    return {
         harvester: _.filter(Game.creeps, (creep) => creep.memory.role === 'harvester').length,
         energyMiner: _.filter(Game.creeps, (creep) => creep.memory.role === 'energyMiner').length,
         carrier: _.filter(Game.creeps, (creep) => creep.memory.role === 'carrier').length,
         upgrader: _.filter(Game.creeps, (creep) => creep.memory.role === 'upgrader').length,
-        builder: _.filter(Game.creeps, (creep) => creep.memory.role === 'builder').length
+        builder: _.filter(Game.creeps, (creep) => creep.memory.role === 'builder').length,
     };
+}
 
-    const isRoleInQueue = (role) =>
-        Memory.spawnQueue.some((item) => item.role === role) ||
-        _.some(Game.spawns, (spawn) => spawn.spawning && spawn.spawning.name.startsWith(role));
+// Check if we should retire a harvester
+function shouldRetireHarvester(roleCounts) {
+    return (
+        roleCounts.energyMiner >= 3 &&
+        roleCounts.carrier >= 2 &&
+        roleCounts.upgrader >= 2
+    );
+}
 
-    if (roleCounts.energyMiner >= 3 && roleCounts.carrier >= 2) {
-        Memory.Early = false;
-        const harvester = _.find(Game.creeps, (creep) => creep.memory.role === 'harvester');
-        if (harvester) {
-            console.log(`Retiring harvester: ${harvester.name}`);
-            harvester.memory.role = 'builder';
+// Retire a harvester and change its role to builder
+function retireHarvesterToBuilder() {
+    const harvester = _.find(Game.creeps, (creep) => creep.memory.role === 'harvester');
+    if (!harvester) return;
+
+    console.log(`Retiring harvester: ${harvester.name}. Changing role to builder.`);
+
+    if (harvester.memory.sourceId) {
+        const roomMemory = Memory.rooms[harvester.room.name];
+        const sourceMemory = roomMemory.sources[harvester.memory.sourceId];
+
+        if (sourceMemory) {
+            sourceMemory.assignedCreeps = sourceMemory.assignedCreeps.filter((name) => name !== harvester.name);
+            console.log(`Removed ${harvester.name} from source ${harvester.memory.sourceId}.`);
         }
+
+        harvester.memory.sourceId = null;
     }
 
-    if (Memory.Early && roleCounts.harvester <= 2 && !isRoleInQueue('harvester')) {
-        Memory.spawnQueue.push({ role: 'harvester' });
-    }
+    harvester.memory.role = 'builder';
+}
 
-    if (roleCounts.energyMiner <= 3 && !isRoleInQueue('energyMiner')) {
-        Memory.spawnQueue.push({ role: 'energyMiner' });
-    }
-
-    if (roleCounts.carrier <= 2 && !isRoleInQueue('carrier')) {
-        Memory.spawnQueue.push({ role: 'carrier' });
-    }
-
-    if (roleCounts.upgrader <= 2 && !isRoleInQueue('upgrader')) {
-        Memory.spawnQueue.push({ role: 'upgrader' });
-    }
-
-    const room = Game.spawns['Spawn1'].room;
-    const hasConstructionSites = room.find(FIND_CONSTRUCTION_SITES).length > 0;
-
-    if (
-        room.controller.level >= 2 &&
-        hasConstructionSites &&
-        roleCounts.builder < 2 &&
-        !isRoleInQueue('builder')
-    ) {
-        Memory.spawnQueue.push({ role: 'builder' });
+// Add a role to the spawn queue if the condition is met
+function addRoleToQueue(role, conditionFn) {
+    if (conditionFn() && !isRoleInQueue(role)) {
+        Memory.spawnQueue.push({ role });
+        console.log(`Added ${role} to spawn queue.`);
     }
 }
+
+// Check if a role is already in the queue or being spawned
+function isRoleInQueue(role) {
+    return (
+        Memory.spawnQueue.some((item) => item.role === role) ||
+        _.some(Game.spawns, (spawn) => spawn.spawning && spawn.spawning.name.startsWith(role))
+    );
+}
+
 
 function manageExtensionsAndContainers(room) {
     if (room.controller.level >= 2) {

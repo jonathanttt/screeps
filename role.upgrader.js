@@ -11,8 +11,10 @@ const roleUpgrader = {
 
         // Perform tasks based on the current state
         if (creep.memory.upgrading) {
+            creep.say('🛠');
             this.upgradeController(creep);
         } else {
+            creep.say('⏳');
             this.waitForEnergy(creep);
         }
     },
@@ -21,11 +23,9 @@ const roleUpgrader = {
     updateState: function (creep) {
         if (creep.memory.upgrading && creep.store[RESOURCE_ENERGY] === 0) {
             creep.memory.upgrading = false;
-            creep.say('⏳ waiting');
         }
         if (!creep.memory.upgrading && creep.store.getFreeCapacity() === 0) {
             creep.memory.upgrading = true;
-            creep.say('⚡ upgrade');
         }
     },
 
@@ -42,8 +42,7 @@ const roleUpgrader = {
         if (!creep.pos.inRangeTo(creep.room.controller, 1)) {
             creep.moveTo(creep.room.controller, { visualizePathStyle: { stroke: '#ffaa00' } });
         } else {
-            creep.say('⏳ waiting');
-            console.log(`Upgrader ${creep.name} is waiting for energy at (${creep.pos.x}, ${creep.pos.y}).`);
+            // console.log(`Upgrader ${creep.name} is waiting for energy at (${creep.pos.x}, ${creep.pos.y}).`);
         }
     }
 };

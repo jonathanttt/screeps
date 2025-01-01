@@ -20,11 +20,9 @@ var spawnManager = {
         const result = spawn.spawnCreep(body, newName, { memory: { role } });
 
         if (result === OK) {
-            console.log(`Spawning new ${role}: ${newName}`);
+            // console.log(`Spawning new ${role}: ${newName}`);
             Memory.spawnInProgress = true; // Set the flag
             return true; // Spawn action succeeded
-        } else {
-            console.log(`Failed to spawn ${role}. Error: ${result}`);
         }
 
         return false; // No spawn action taken

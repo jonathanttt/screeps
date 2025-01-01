@@ -26,6 +26,7 @@ const roleCarrier = {
 
     /** Deliver energy to structures based on threshold */
     deliverEnergy: function (creep, threshold) {
+        creep.say('📦');
         const targets = creep.room.find(FIND_STRUCTURES, {
             filter: (structure) =>
                 (structure.structureType === STRUCTURE_TOWER ||
@@ -51,6 +52,7 @@ const roleCarrier = {
 
     /** Transfer energy to upgraders */
     transferEnergyToUpgraders: function (creep) {
+        creep.say('➡️');
         const upgraders = creep.room.find(FIND_MY_CREEPS, {
             filter: (c) => c.memory.role === 'upgrader' && c.store.getFreeCapacity(RESOURCE_ENERGY) > 0
         });
@@ -70,6 +72,7 @@ const roleCarrier = {
 
     /** Transfer energy to builders */
     transferEnergyToBuilders: function (creep) {
+        creep.say('➡️');
         const builders = creep.room.find(FIND_MY_CREEPS, {
             filter: (c) => c.memory.role === 'builder' && c.store.getFreeCapacity(RESOURCE_ENERGY) > 0
         });
@@ -89,6 +92,7 @@ const roleCarrier = {
 
     /** Store energy in building containers */
     storeInBuildingContainers: function (creep) {
+        creep.say('📥');
         const buildingContainers = creep.room.find(FIND_STRUCTURES, {
             filter: (structure) =>
                 structure.structureType === STRUCTURE_CONTAINER &&
@@ -106,6 +110,7 @@ const roleCarrier = {
 
     /** Store energy in storage or create a container near spawn */
     storeEnergy: function (creep) {
+        creep.say('📥');
         const storage = creep.room.storage;
         if (storage && storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
             if (creep.transfer(storage, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
@@ -146,6 +151,7 @@ const roleCarrier = {
 
     /** Collect energy from sources */
     collectEnergy: function (creep) {
+        creep.say('🔄');
         const droppedEnergy = creep.pos.findClosestByPath(FIND_DROPPED_RESOURCES, {
             filter: (res) => res.resourceType === RESOURCE_ENERGY
         });

@@ -29,6 +29,7 @@ const roleEnergyMiner = {
 
     /** Mine energy from the assigned source */
     mineEnergy: function (creep) {
+        creep.say('⛏');
         const source = Game.getObjectById(creep.memory.sourceId);
         if (!source) {
             console.log(`Miner ${creep.name} has no assigned source.`);

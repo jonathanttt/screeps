@@ -9,11 +9,11 @@ const roleBuilder = {
         // Toggle between building and collecting energy
         if (creep.memory.building && creep.store[RESOURCE_ENERGY] === 0) {
             creep.memory.building = false;
-            creep.say('🔄 collect');
+            creep.say('🔄');
         }
         if (!creep.memory.building && creep.store.getFreeCapacity() === 0) {
             creep.memory.building = true;
-            creep.say('🚧 build');
+            creep.say('🚧');
         }
 
         // Perform tasks based on the current state
