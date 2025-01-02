@@ -59,8 +59,8 @@ function updateSpawnQueue() {
     const hasConstructionSites = room.find(FIND_CONSTRUCTION_SITES).length > 0;
 
     // Handle harvester retirement
-    if (shouldRetireHarvester(roleCounts)) {
-        retireHarvesterToBuilder();
+    if (Memory.Early && shouldRetireHarvester(roleCounts)) {
+        retireAllHarvestersToBuilders();
     }
 
     // Add missing roles to the spawn queue
@@ -92,25 +92,31 @@ function shouldRetireHarvester(roleCounts) {
 }
 
 // Retire a harvester and change its role to builder
-function retireHarvesterToBuilder() {
-    const harvester = _.find(Game.creeps, (creep) => creep.memory.role === 'harvester');
-    if (!harvester) return;
+function retireAllHarvestersToBuilders() {
+    const harvesters = _.filter(Game.creeps, (creep) => creep.memory.role === 'harvester');
 
-    console.log(`Retiring harvester: ${harvester.name}. Changing role to builder.`);
-
-    if (harvester.memory.sourceId) {
-        const roomMemory = Memory.rooms[harvester.room.name];
-        const sourceMemory = roomMemory.sources[harvester.memory.sourceId];
-
-        if (sourceMemory) {
-            sourceMemory.assignedCreeps = sourceMemory.assignedCreeps.filter((name) => name !== harvester.name);
-            console.log(`Removed ${harvester.name} from source ${harvester.memory.sourceId}.`);
-        }
-
-        harvester.memory.sourceId = null;
+    if (harvesters.length === 0) {
+        console.error('No harvesters found to retire.');
+        return;
     }
 
-    harvester.memory.role = 'builder';
+    harvesters.forEach((harvester) => {
+        console.log(`Retiring harvester: ${harvester.name}. Changing role to builder.`);
+
+        if (harvester.memory.sourceId) {
+            const roomMemory = Memory.rooms[harvester.room.name];
+            const sourceMemory = roomMemory.sources[harvester.memory.sourceId];
+
+            if (sourceMemory) {
+                sourceMemory.assignedCreeps = sourceMemory.assignedCreeps.filter((name) => name !== harvester.name);
+                console.log(`Removed ${harvester.name} from source ${harvester.memory.sourceId}.`);
+            }
+
+            harvester.memory.sourceId = null;
+        }
+
+        harvester.memory.role = 'builder';
+    });
 }
 
 // Add a role to the spawn queue if the condition is met

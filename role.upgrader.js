@@ -6,7 +6,7 @@ const roleUpgrader = {
         // Avoid enemies
         if (avoidEnemies(creep)) return;
 
-        // Toggle between upgrading and waiting for energy states
+        // Toggle between upgrading and fetching energy beside
         this.updateState(creep);
 
         // Perform tasks based on the current state
@@ -14,8 +14,10 @@ const roleUpgrader = {
             creep.say('🛠');
             this.upgradeController(creep);
         } else {
-            creep.say('⏳');
-            this.waitForEnergy(creep);
+            const searchRange = 3;
+            const waitRange = 2;
+            creep.say('🔄');
+            this.fetchEnergyNearController(creep, searchRange, waitRange);
         }
     },
 
@@ -36,13 +38,35 @@ const roleUpgrader = {
         }
     },
 
-    /** Wait for energy near the controller */
-    waitForEnergy: function (creep) {
-        // Stay close to the controller and wait for energy
-        if (!creep.pos.inRangeTo(creep.room.controller, 1)) {
-            creep.moveTo(creep.room.controller, { visualizePathStyle: { stroke: '#ffaa00' } });
+    /** Fetch energy from nearby containers or dropped resources near the controller */
+    fetchEnergyNearController: function (creep, searchRange, waitRange) {
+        // Look for energy sources near the controller
+        const nearbyTargets = creep.room.controller.pos.findInRange(FIND_STRUCTURES, searchRange, {
+            filter: (structure) =>
+                (structure.structureType === STRUCTURE_CONTAINER ||
+                    structure.structureType === STRUCTURE_STORAGE) &&
+                structure.store[RESOURCE_ENERGY] > 0
+        }).concat(
+            creep.room.controller.pos.findInRange(FIND_DROPPED_RESOURCES, searchRange, {
+                filter: (resource) => resource.resourceType === RESOURCE_ENERGY
+            })
+        );
+
+        if (nearbyTargets.length > 0) {
+            // Prioritize structure over dropped resources
+            const target = nearbyTargets.find((t) => t.structureType) || nearbyTargets[0];
+
+            if (
+                (target.structureType && creep.withdraw(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) ||
+                (target.resourceType && creep.pickup(target) === ERR_NOT_IN_RANGE)
+            ) {
+                creep.moveTo(target, { visualizePathStyle: { stroke: '#ffaa00' } });
+            }
         } else {
-            // console.log(`Upgrader ${creep.name} is waiting for energy at (${creep.pos.x}, ${creep.pos.y}).`);
+            // Stay close to the controller while waiting for energy to appear
+            if (!creep.pos.inRangeTo(creep.room.controller, waitRange)) {
+                creep.moveTo(creep.room.controller, { visualizePathStyle: { stroke: '#ffaa00' } });
+            }
         }
     }
 };

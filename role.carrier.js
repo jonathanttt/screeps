@@ -6,11 +6,26 @@ const roleCarrier = {
         // Avoid enemies
         if (avoidEnemies(creep)) return;
 
-        // Handle energy tasks based on state
-        if (creep.store[RESOURCE_ENERGY] > 0) {
+        // Toggle between collect and deliver/transfer energy states
+        this.updateState(creep);
+
+        // Perform tasks based on the current state
+        if (creep.memory.delivering) {
+            creep.say('📦');
             this.manageEnergyDelivery(creep);
         } else {
+            creep.say('🔄');
             this.collectEnergy(creep);
+        }
+    },
+
+    /** Toggle states based on energy capacity */
+    updateState: function (creep) {
+        if (creep.memory.delivering && creep.store[RESOURCE_ENERGY] === 0) {
+            creep.memory.delivering = false;
+        }
+        if (!creep.memory.delivering && creep.store.getFreeCapacity() === 0) {
+            creep.memory.delivering = true;
         }
     },
 
@@ -60,15 +75,15 @@ const roleCarrier = {
         const targetUpgrader = upgraders.sort(
             (a, b) => a.store[RESOURCE_ENERGY] - b.store[RESOURCE_ENERGY]
         )[0];
-
+        
         if (targetUpgrader) {
-            if (creep.transfer(targetUpgrader, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(targetUpgrader, { visualizePathStyle: { stroke: '#00ff00' } });
+                if (creep.transfer(targetUpgrader, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(targetUpgrader, { visualizePathStyle: { stroke: '#00ff00' } });
+                }
+                return true;
             }
-            return true;
-        }
-        return false;
-    },
+            return false;
+        },       
 
     /** Transfer energy to builders */
     transferEnergyToBuilders: function (creep) {
