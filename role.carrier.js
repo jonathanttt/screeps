@@ -21,11 +21,13 @@ const roleCarrier = {
 
     /** Toggle states based on energy capacity */
     updateState: function (creep) {
-        if (creep.memory.delivering && creep.store[RESOURCE_ENERGY] === 0) {
+        if (creep.store[RESOURCE_ENERGY] === 0) {
             creep.memory.delivering = false;
+            creep.memory.targetId = null;
         }
-        if (!creep.memory.delivering && creep.store.getFreeCapacity() === 0) {
+        if (creep.store.getFreeCapacity() === 0) {
             creep.memory.delivering = true;
+            creep.memory.targetId = null;
         }
     },
 
@@ -37,6 +39,78 @@ const roleCarrier = {
         if (this.storeInBuildingContainers(creep)) return;
         if (this.deliverEnergy(creep, 0.2)) return;
         this.storeEnergy(creep);
+    },
+
+    /** Collect energy with tradeoff strategy */
+    collectEnergy: function (creep) {
+        const target = Game.getObjectById(creep.memory.targetId);
+
+        if (!target) {
+            // Select a new target if none exists
+            const bestSource = this.findBestSource(creep);
+            if (bestSource) {
+                creep.memory.targetId = bestSource.id;
+                creep.moveTo(bestSource, { visualizePathStyle: { stroke: '#ffaa00' } });
+            } else {
+                // No valid targets, transition to delivery state
+                creep.memory.delivering = true;
+            }
+        } else {
+            // Collect energy from the target
+            if (target.amount > 0 && creep.pickup(target) === ERR_NOT_IN_RANGE) {
+                creep.moveTo(target, { visualizePathStyle: { stroke: '#ffaa00' } });
+            } else {
+                // After collecting, check nearby sources if capacity remains
+                if (creep.store.getFreeCapacity() > 0) {
+                    this.lookForNearbySources(creep);
+                } else {
+                    creep.memory.delivering = true;
+                }
+            }
+        }
+    },
+
+    /** Find the best energy source considering free capacity */
+    findBestSource: function (creep) {
+        const droppedEnergy = creep.room.find(FIND_DROPPED_RESOURCES, {
+            filter: (res) => res.resourceType === RESOURCE_ENERGY
+        });
+
+        const freeCapacity = creep.store.getFreeCapacity(RESOURCE_ENERGY);
+
+        return droppedEnergy
+            .map((source) => {
+                const effectiveEnergy = Math.min(source.amount, freeCapacity); // Cap by free capacity
+                const distance = creep.pos.getRangeTo(source);
+                const energyBenefit = effectiveEnergy / distance; // Time unit benefit
+
+                return {
+                    source,
+                    energyBenefit,
+                };
+            })
+            .sort((a, b) => b.energyBenefit - a.energyBenefit) // Maximize energy benefit
+            .map((entry) => entry.source)[0]; // Pick the best source
+    },
+
+    /** Check for nearby sources after picking all energy from the first target */
+    lookForNearbySources: function (creep) {
+        const nearbySources = creep.pos.findInRange(FIND_DROPPED_RESOURCES, 3, {
+            filter: (res) => res.resourceType === RESOURCE_ENERGY && res.amount > 0
+        });
+
+        if (nearbySources.length > 0) {
+            // Assign the best nearby source
+            const bestSource = this.findBestSource(creep, nearbySources);
+            if (bestSource) {
+                creep.memory.targetId = bestSource.id;
+                creep.moveTo(bestSource, { visualizePathStyle: { stroke: '#ffaa00' } });
+            }
+        } else {
+            // No nearby sources, transition to delivery
+            creep.memory.targetId = null;
+            creep.memory.delivering = true;
+        }
     },
 
     /** Deliver energy to structures based on threshold */
